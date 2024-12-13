@@ -3,14 +3,14 @@ name: Deploy React App to AWS
 on:
   push:
     branches:
-      - main  # Replace with your default branch
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Checkout the code from GitHub
+    # Step 1: Checkout the code
     - name: Checkout Code
       uses: actions/checkout@v3
 
@@ -18,37 +18,45 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '16'  # Replace with your preferred Node.js version
+        node-version: '16'
 
-    # Step 3: Install dependencies
+    # Step 3: Install missing dependencies
+    - name: Install Missing Babel Plugin
+      run: npm install --save-dev @babel/plugin-proposal-private-property-in-object
+
+    # Step 4: Update Browserslist DB
+    - name: Update Browserslist DB
+      run: npx update-browserslist-db@latest
+
+    # Step 5: Install dependencies
     - name: Install Dependencies
       run: npm install
 
-    # Step 4: Build the React app
+    # Step 6: Build the React app
     - name: Build React App
       run: npm run build
 
-    # Step 5: Install AWS CLI
+    # Step 7: Install AWS CLI
     - name: Install AWS CLI
       run: |
         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
         unzip awscliv2.zip
         sudo ./aws/install
 
-    # Step 6: Deploy to S3
+    # Step 8: Deploy to S3
     - name: Deploy to S3
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: 'ap-southeast-2'  # Replace with your AWS region
+        AWS_REGION: 'ap-southeast-2'
       run: |
         aws s3 sync ./build s3://my-react-app-bucket-789 --delete
 
-    # Step 7: Invalidate CloudFront cache
+    # Step 9: Invalidate CloudFront cache
     - name: Invalidate CloudFront Cache
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: 'ap-southeast-2'  # Replace with your AWS region
+        AWS_REGION: 'ap-southeast-2'
       run: |
         aws cloudfront create-invalidation --distribution-id d2sh2orsg8lfj2 --paths "/*"
